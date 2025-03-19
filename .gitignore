@@ -1,4 +1,4 @@
 .DS_Store
 .vscode
-/vendor/
-/node_modules/
+vendor
+node_modules
