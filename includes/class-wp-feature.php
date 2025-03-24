@@ -41,6 +41,14 @@ class WP_Feature implements \JsonSerializable {
 	);
 
 	/**
+	 * Default feature type constant.
+	 *
+	 * @since 0.1.0
+	 * @var string
+	 */
+	const TYPE_DEFAULT = self::TYPE_RESOURCE;
+
+	/**
 	 * Server location constant.
 	 *
 	 * @since 0.1.0
@@ -84,6 +92,14 @@ class WP_Feature implements \JsonSerializable {
 	 * @var string
 	 */
 	private $name;
+
+	/**
+	 * Whether the feature has a REST alias.
+	 *
+	 * @since 0.1.0
+	 * @var bool
+	 */
+	private $rest_alias = false;
 
 	/**
 	 * The feature description.
@@ -209,66 +225,46 @@ class WP_Feature implements \JsonSerializable {
 	}
 
 	/**
-	 * Sets the properties of the feature.
+	 * Makes a feature from various input types.
 	 *
 	 * @since 0.1.0
-	 * @param array $args The feature arguments.
-	 * @return WP_Error|true WP_Error if validation fails, true otherwise.
+	 * @param WP_Feature|array|string $feature The feature to make.
+	 * @return WP_Feature|false The feature if successful, false otherwise.
 	 */
-	private function set_props( $args ) {
-		$args = wp_parse_args(
-			$args,
-			array(
-				'type'         => 'resource',
-				'name'         => '',
-				'description'  => '',
-				'meta'         => array(),
-				'categories'   => array(),
-				'input_schema' => array(),
-				'output_schema' => array(),
-				'callback'     => null,
-				'permissions'  => '',
-				'filter'       => null,
-			)
-		);
+	public static function make( $feature ) {
+		if ( is_array( $feature ) ) {
+			if ( ! isset( $feature['id'] ) ) {
+				return false;
+			}
 
-		if ( empty( $args['name'] ) ) {
-			return new WP_Error( 'missing_name', __( 'Feature name is required.', 'wp-feature-api' ) );
+			$feature = new WP_Feature( $feature['id'], $feature );
 		}
 
-		if ( empty( $args['description'] ) ) {
-			return new WP_Error( 'missing_description', __( 'Feature description is required.', 'wp-feature-api' ) );
+		if ( is_string( $feature ) ) {
+			$feature = new WP_Feature( $feature );
 		}
 
-		if ( ! in_array( $args['type'], self::TYPES, true ) ) {
-			return new WP_Error( 'invalid_type', __( 'Feature type must be either "resource" or "tool".', 'wp-feature-api' ) );
+		if ( $feature instanceof WP_Feature ) {
+			$feature->register_rest_alias();
+			return $feature;
 		}
 
-		// Sanitize text fields.
-		$this->name        = sanitize_text_field( $args['name'] );
-		$this->description = sanitize_text_field( $args['description'] );
-		$this->type        = $args['type'];
+		return false;
+	}
 
-		// Meta should be an array.
-		$this->meta = is_array( $args['meta'] ) ? $args['meta'] : array();
+	/**
+	 * Gets the feature type from a request method.
+	 *
+	 * @since 0.1.0
+	 * @param string $method The request method.
+	 * @return string The feature type.
+	 */
+	public static function type_from_request_method( $method ) {
+		if ( 'POST' === strtoupper( $method ) ) {
+			return self::TYPE_TOOL;
+		}
 
-		// Categories should be an array.
-		$this->categories = is_array( $args['categories'] ) ? $args['categories'] : array();
-
-		// Schema values should be arrays.
-		$this->input_schema  = is_array( $args['input_schema'] ) ? $args['input_schema'] : array();
-		$this->output_schema = is_array( $args['output_schema'] ) ? $args['output_schema'] : array();
-
-		// Callback must be callable or null.
-		$this->callback = is_callable( $args['callback'] ) || null === $args['callback'] ? $args['callback'] : null;
-
-		// Permissions can be string, array, or callable.
-		$this->permissions = $args['permissions'];
-
-		// Filter must be callable or null.
-		$this->filter = is_callable( $args['filter'] ) || null === $args['filter'] ? $args['filter'] : null;
-
-		return true;
+		return self::TYPE_RESOURCE;
 	}
 
 	/**
@@ -402,6 +398,30 @@ class WP_Feature implements \JsonSerializable {
 	}
 
 	/**
+	 * Whether the feature has a REST alias.
+	 *
+	 * @since 0.1.0
+	 * @return bool Whether the feature has a REST alias.
+	 */
+	public function has_rest_alias() {
+		return $this->rest_alias;
+	}
+
+	/**
+	 * Gets the REST method for the feature based on the feature type.
+	 *
+	 * @since 0.1.0
+	 * @return string The REST method.
+	 */
+	public function get_rest_method() {
+		if ( self::TYPE_TOOL === $this->type ) {
+			return WP_REST_Server::CREATABLE;
+		}
+
+		return WP_REST_Server::READABLE;
+	}
+
+	/**
 	 * Runs the feature.
 	 *
 	 * @since 0.1.0
@@ -452,7 +472,9 @@ class WP_Feature implements \JsonSerializable {
 		do_action( 'wp_feature_before_run', $context, $this );
 		do_action( $this->get_filter_id() . '_before_run', $context, $this );
 		// Run the feature callback.
-		$result = call_user_func( $this->callback, $context );
+
+		$rest_request = new WP_REST_Request( $this->get_rest_method(), $context );
+		$result = call_user_func( $this->callback, $rest_request );
 
 		/**
 		 * Filters the result after running a feature.
@@ -496,6 +518,81 @@ class WP_Feature implements \JsonSerializable {
 
 		return $result;
 	}
+
+	/**
+	 * Sets the properties of the feature.
+	 *
+	 * @since 0.1.0
+	 * @param array $args The feature arguments.
+	 * @return WP_Error|true WP_Error if validation fails, true otherwise.
+	 */
+	private function set_props( $args ) {
+		$args = wp_parse_args(
+			$args,
+			array(
+				'type'         => self::TYPE_DEFAULT,
+				'name'         => '',
+				'description'  => '',
+				'meta'         => array(),
+				'categories'   => array(),
+				'input_schema' => array(),
+				'output_schema' => array(),
+				'callback'     => null,
+				'permissions'  => '',
+				'filter'       => null,
+				'rest_alias'   => false,
+			)
+		);
+
+		if ( empty( $args['name'] ) ) {
+			return new WP_Error( 'missing_name', __( 'Feature name is required.', 'wp-feature-api' ) );
+		}
+
+		if ( empty( $args['description'] ) ) {
+			return new WP_Error( 'missing_description', __( 'Feature description is required.', 'wp-feature-api' ) );
+		}
+
+		if ( ! in_array( $args['type'], self::TYPES, true ) ) {
+			return new WP_Error(
+				'invalid_type',
+				sprintf(
+					/* translators: %s: Feature type */
+					__( 'Feature type must be one of: %s', 'wp-feature-api' ),
+					implode( ', ', self::TYPES )
+				)
+			);
+		}
+
+		// Sanitize text fields.
+		$this->name        = sanitize_text_field( $args['name'] );
+		$this->description = sanitize_text_field( $args['description'] );
+		$this->type        = $args['type'];
+
+		// Meta should be an array.
+		$this->meta = is_array( $args['meta'] ) ? $args['meta'] : array();
+
+		// Categories should be an array.
+		$this->categories = is_array( $args['categories'] ) ? $args['categories'] : array();
+
+		// Schema values should be arrays.
+		$this->input_schema  = is_array( $args['input_schema'] ) ? $args['input_schema'] : array();
+		$this->output_schema = is_array( $args['output_schema'] ) ? $args['output_schema'] : array();
+
+		// Callback must be callable or null.
+		$this->callback = is_callable( $args['callback'] ) || null === $args['callback'] ? $args['callback'] : null;
+
+		// Permissions can be string, array, or callable.
+		$this->permissions = $args['permissions'];
+
+		// Filter must be callable or null.
+		$this->filter = is_callable( $args['filter'] ) || null === $args['filter'] ? $args['filter'] : null;
+
+		// Rest alias must be false or a string.
+		$this->rest_alias = false === $args['rest_alias'] || is_string( $args['rest_alias'] ) ? $args['rest_alias'] : false;
+
+		return true;
+	}
+
 
 	/**
 	 * Validates the input against the schema.
@@ -592,6 +689,111 @@ class WP_Feature implements \JsonSerializable {
 	}
 
 	/**
+	 * Checks if the feature is a REST alias.
+	 *
+	 * @since 0.1.0
+	 * @return bool Whether the feature is a REST alias.
+	 */
+	public function is_rest_alias() {
+		return false !== $this->rest_alias;
+	}
+
+	/**
+	 * Gets the alternate types for the feature.
+	 *
+	 * @since 0.1.0
+	 * @return array The alternate types.
+	 */
+	public function get_alternate_types() {
+		$alternate_types = array_diff( self::TYPES, array( $this->type ) );
+		$alternate_features = array();
+		foreach ( $alternate_types as $type ) {
+			$feature = wp_feature_registry()->find( $this->id, $type );
+			if ( $feature instanceof WP_Feature ) {
+				$alternate_features[] = $feature;
+			}
+		}
+
+		return $alternate_features;
+	}
+
+	/**
+	 * Sets the feature from a REST alias.
+	 *
+	 * @since 0.1.0
+	 * @return WP_Feature The feature object or WP_Error if the REST alias is not found.
+	 */
+	public function set_from_rest_alias() {
+		$rest_alias = $this->get_rest_alias();
+
+		if ( is_wp_error( $rest_alias ) ) {
+			return $rest_alias;
+		}
+
+		if ( isset( $rest_alias['args'] ) ) {
+			$this->input_schema = $rest_alias['args'];
+		}
+
+		if ( isset( $rest_alias['schema'] ) ) {
+			$this->output_schema = $rest_alias['schema'];
+		}
+
+		if ( isset( $rest_alias['permission_callback'] ) ) {
+			$this->permissions = $rest_alias['permission_callback'];
+		}
+
+		if ( isset( $rest_alias['callback'] ) && is_callable( $rest_alias['callback'] ) ) {
+			$this->callback = $rest_alias['callback'];
+		}
+
+		return $this;
+	}
+
+	/**
+	 * Checks if a feature has a REST alias.
+	 *
+	 * @since 0.1.0
+	 * @return array|WP_Error The REST alias if found, WP_Error otherwise.
+	 */
+	private function get_rest_alias() {
+		$routes = rest_get_server()->get_routes();
+		$feature_route = $this->rest_alias;
+
+		if ( ! isset( $routes[ $feature_route ] ) ) {
+			return new WP_Error(
+				'rest_alias_not_found',
+				sprintf(
+					/* translators: %1$s: Feature name, %2$s: REST route path */
+					__( 'REST API alias of feature (%1$s) not found. Check if the REST route %2$s exists.', 'wp-feature-api' ),
+					$this->id,
+					$feature_route
+				),
+				array( 'status' => 404 )
+			);
+		}
+
+		$method = $this->get_rest_method();
+
+		foreach ( $routes[ $feature_route ] as $route_handler ) {
+			$methods = array_keys( $route_handler['methods'] );
+			if ( in_array( $method, $methods, true ) ) {
+				return $route_handler;
+			}
+		}
+
+		return new WP_Error(
+			'rest_alias_method_not_supported',
+			sprintf(
+				/* translators: %1$s: Feature name, %2$s: HTTP method */
+				__( 'REST API alias of feature (%1$s) does not support the method %2$s.', 'wp-feature-api' ),
+				$feature->get_id(),
+				$method
+			),
+			array( 'status' => 405 )
+		);
+	}
+
+	/**
 	 * Gets the filter ID for use in actions and filters following the WordPress filter naming convention.
 	 *
 	 * @since 0.1.0
@@ -648,5 +850,17 @@ class WP_Feature implements \JsonSerializable {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Registers data from the REST alias if it exists.
+	 *
+	 * @since 0.1.0
+	 * @return void
+	 */
+	private function register_rest_alias() {
+		if ( $this->is_rest_alias() ) {
+			$this->set_from_rest_alias();
+		}
 	}
 }
