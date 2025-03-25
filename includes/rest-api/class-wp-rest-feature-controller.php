@@ -18,7 +18,7 @@ class WP_REST_Feature_Controller extends WP_REST_Controller {
 	 * @since 0.1.0
 	 * @var array
 	 */
-	private $default_fields = array( 'id', 'name', 'description', 'type', 'categories', 'metadata' );
+	private $default_fields = array( 'id', 'name', 'description', 'type', 'categories', 'metadata', 'input_schema', 'output_schema' );
 
 	/**
 	 * Path for the run endpoint.
