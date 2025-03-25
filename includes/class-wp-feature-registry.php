@@ -32,12 +32,20 @@ class WP_Feature_Registry {
 
 	/**
 	 * In-memory cache of feature IDs.
-	 * Features are fetched from the repository when needed.
+	 * Separated by type.
 	 *
 	 * @since 0.1.0
 	 * @var array
 	 */
-	private $feature_ids = array();
+	private $features = array();
+
+
+	/**
+	 * @todo: keep track of categories
+	 * this will be important for use in inference using an LLM to narrow down the features by category.
+	 * should categories contain descriptions?
+	 */
+	private $categories = array();
 
 	/**
 	 * Private constructor to prevent direct instantiation.
@@ -66,6 +74,7 @@ class WP_Feature_Registry {
 		}
 
 		$this->repository = $repository;
+		$this->cache_clear();
 	}
 
 	/**
@@ -90,21 +99,13 @@ class WP_Feature_Registry {
 	 * @return bool True if the feature was registered, false otherwise.
 	 */
 	public function register( $feature ) {
-		if ( is_array( $feature ) ) {
-			if ( ! isset( $feature['id'] ) ) {
-				return false;
-			}
+		$feature = WP_Feature::make( $feature );
 
-			$feature = new WP_Feature( $feature['id'], $feature );
-		}
-
-		if ( ! $feature instanceof WP_Feature ) {
+		if ( ! $feature ) {
 			return false;
 		}
 
-		$feature_id = $feature->get_id();
-
-		if ( $this->repository->find( $feature_id ) ) {
+		if ( $this->repository->find( $feature ) ) {
 			return false;
 		}
 
@@ -114,8 +115,8 @@ class WP_Feature_Registry {
 			return false;
 		}
 
-		if ( ! in_array( $feature_id, $this->feature_ids, true ) ) {
-			$this->feature_ids[] = $feature_id;
+		if ( ! $this->cache_has( $feature ) ) {
+			$this->cache_put( $feature );
 		}
 
 		/**
@@ -137,8 +138,13 @@ class WP_Feature_Registry {
 	 * @return bool True if the feature was unregistered, false otherwise.
 	 */
 	public function unregister( $feature ) {
-		$feature_id = $feature instanceof WP_Feature ? $feature->get_id() : $feature;
+		$feature = WP_Feature::make( $feature );
 
+		if ( ! $feature ) {
+			return false;
+		}
+
+		$feature_id = $feature->get_id();
 		$feature_obj = $this->repository->find( $feature_id );
 
 		if ( ! $feature_obj ) {
@@ -167,11 +173,12 @@ class WP_Feature_Registry {
 	 * Finds a feature by its ID.
 	 *
 	 * @since 0.1.0
-	 * @param string $feature_id The feature ID to find.
+	 * @param string      $feature_id The feature ID to find.
+	 * @param string|null $type The type of feature to find.
 	 * @return WP_Feature|null The feature if found, null otherwise.
 	 */
-	public function find( $feature_id ) {
-		return $this->repository->find( $feature_id );
+	public function find( $feature_id, $type = null ) {
+		return $this->repository->find( $feature_id, $type );
 	}
 
 	/**
@@ -198,41 +205,6 @@ class WP_Feature_Registry {
 	}
 
 	/**
-	 * Clears the feature ID cache.
-	 *
-	 * @since 0.1.0
-	 * @return void
-	 */
-	public function clear_cache() {
-		$this->feature_ids = array();
-	}
-
-	/**
-	 * Gets all registered feature IDs.
-	 *
-	 * @since 0.1.0
-	 * @return array List of registered feature IDs.
-	 */
-	public function get_registered_ids() {
-		return $this->feature_ids;
-	}
-
-	/**
-	 * Removes a feature ID from the cache.
-	 *
-	 * @since 0.1.0
-	 * @param string $feature_id The feature ID to remove.
-	 * @return void
-	 */
-	private function remove_from_cache( $feature_id ) {
-		$index = array_search( $feature_id, $this->feature_ids, true );
-		if ( false !== $index ) {
-			unset( $this->feature_ids[ $index ] );
-			$this->feature_ids = array_values( $this->feature_ids );
-		}
-	}
-
-	/**
 	 * Removes a feature from the repository and cache.
 	 *
 	 * @since 0.1.0
@@ -246,8 +218,53 @@ class WP_Feature_Registry {
 			return false;
 		}
 
-		$this->remove_from_cache( $feature_id );
+		$this->cache_delete( $feature_id );
 
 		return true;
+	}
+
+	/**
+	 * Clears the feature ID cache.
+	 *
+	 * @since 0.1.0
+	 * @return void
+	 */
+	private function cache_clear() {
+		$this->features = array(
+			WP_Feature::TYPE_RESOURCE => array(),
+			WP_Feature::TYPE_TOOL => array(),
+		);
+	}
+
+	/**
+	 * Removes a feature ID from the cache.
+	 *
+	 * @since 0.1.0
+	 * @param WP_Feature $feature The feature to remove.
+	 * @return void
+	 */
+	private function cache_delete( $feature ) {
+		unset( $this->features[ $feature->get_type() ][ $feature->get_id() ] );
+	}
+
+	/**
+	 * Checks if a feature is cached.
+	 *
+	 * @since 0.1.0
+	 * @param WP_Feature $feature The feature to check.
+	 * @return bool True if the feature is cached, false otherwise.
+	 */
+	private function cache_has( $feature ) {
+		return isset( $this->features[ $feature->get_type() ][ $feature->get_id() ] );
+	}
+
+	/**
+	 * Caches a feature.
+	 *
+	 * @since 0.1.0
+	 * @param WP_Feature $feature The feature to cache.
+	 */
+	private function cache_put( $feature ) {
+		$this->features[ $feature->get_type() ][] = $feature->get_id();
 	}
 }

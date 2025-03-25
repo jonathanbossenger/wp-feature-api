@@ -18,7 +18,15 @@ class WP_REST_Feature_Controller extends WP_REST_Controller {
 	 * @since 0.1.0
 	 * @var array
 	 */
-	private $default_fields = array( 'id', 'name', 'description', 'type', 'categories', 'metadata' );
+	private $default_fields = array( 'id', 'name', 'description', 'type', 'categories', 'metadata', 'input_schema', 'output_schema' );
+
+	/**
+	 * Path for the run endpoint.
+	 *
+	 * @since 0.1.0
+	 * @var string
+	 */
+	private $run_path = 'run';
 
 	/**
 	 * Constructor.
@@ -59,6 +67,52 @@ class WP_REST_Feature_Controller extends WP_REST_Controller {
 	public function register_routes() {
 		$resource_base = '/' . $this->rest_base . '/(?P<id>' . WP_Feature::ID_PATTERN . ')';
 
+		// Register endpoint for executing features.
+		register_rest_route(
+			$this->namespace,
+			$resource_base . '/' . $this->run_path,
+			array(
+				'args'   => array(
+					'id' => array(
+						'description' => __( 'Unique identifier for the feature.', 'wp-feature-api' ),
+						'type'        => 'string',
+						'required'    => true,
+						'pattern'     => WP_Feature::ID_PATTERN,
+					),
+					'type' => array(
+						'description' => __( 'Type of the feature.', 'wp-feature-api' ),
+						'type'        => 'string',
+						'enum'        => WP_Feature::TYPES,
+						'default'     => WP_Feature::TYPE_DEFAULT,
+						'required'    => true,
+					),
+				),
+				array(
+					'methods'             => array( WP_REST_Server::CREATABLE, WP_REST_Server::READABLE ),
+					'callback'            => array( $this, 'run_item' ),
+					'permission_callback' => array( $this, 'run_item_permissions_check' ),
+					'args'                => array(
+						'metadata' => array(
+							'description' => __( 'Metadata for executing the feature.', 'wp-feature-api' ),
+							'type'        => 'object',
+							'properties'  => array(
+								'client_features' => array(
+									'type'        => 'array',
+									'items'       => $this->get_item_schema(),
+								),
+							),
+						),
+						'context' => array(
+							'description' => __( 'Context for executing the feature.', 'wp-feature-api' ),
+							'type'        => 'object',
+							'default'     => array(),
+						),
+					),
+				),
+				'schema' => array( $this, 'get_item_schema' ),
+			)
+		);
+
 		// Register GET endpoint for retrieving all features with pagination.
 		register_rest_route(
 			$this->namespace,
@@ -86,65 +140,18 @@ class WP_REST_Feature_Controller extends WP_REST_Controller {
 						'required'    => true,
 						'pattern'     => WP_Feature::ID_PATTERN,
 					),
+					'type' => array(
+						'description' => __( 'Type of the feature.', 'wp-feature-api' ),
+						'type'        => 'string',
+						'enum'        => WP_Feature::TYPES,
+						'default'     => WP_Feature::TYPE_DEFAULT,
+						'required'    => true,
+					),
 				),
 				array(
 					'methods'             => WP_REST_Server::READABLE,
 					'callback'            => array( $this, 'get_item' ),
 					'permission_callback' => array( $this, 'get_item_permissions_check' ),
-				),
-				'schema' => array( $this, 'get_item_schema' ),
-			)
-		);
-
-		// Register POST endpoint for executing tool features.
-		register_rest_route(
-			$this->namespace,
-			$resource_base . '/run',
-			array(
-				'args'   => array(
-					'id' => array(
-						'description' => __( 'Unique identifier for the feature.', 'wp-feature-api' ),
-						'type'        => 'string',
-						'required'    => true,
-						'pattern'     => WP_Feature::ID_PATTERN,
-					),
-				),
-				array(
-					'methods'             => WP_REST_Server::CREATABLE,
-					'callback'            => array( $this, 'run_item' ),
-					'permission_callback' => array( $this, 'run_item_permissions_check' ),
-					'args'                => array(
-						'metadata' => array(
-							'description' => __( 'Metadata for executing the feature.', 'wp-feature-api' ),
-							'type'        => 'object',
-							'properties'  => array(
-								'client_features' => array(
-									'type'        => 'array',
-									'items'       => $this->get_item_schema(),
-								),
-							),
-						),
-						'context' => array(
-							'description' => __( 'Context for executing the feature.', 'wp-feature-api' ),
-							'type'        => 'object',
-							'default'     => array(),
-						),
-					),
-				),
-				'schema' => array( $this, 'get_item_schema' ),
-			)
-		);
-
-		// Register GET endpoint for querying features.
-		register_rest_route(
-			$this->namespace,
-			'/' . $this->rest_base . '/query',
-			array(
-				array(
-					'methods'             => WP_REST_Server::READABLE,
-					'callback'            => array( $this, 'query_items' ),
-					'permission_callback' => array( $this, 'get_items_permissions_check' ),
-					'args'                => $this->get_query_params(),
 				),
 				'schema' => array( $this, 'get_item_schema' ),
 			)
@@ -160,6 +167,9 @@ class WP_REST_Feature_Controller extends WP_REST_Controller {
 	 * @return WP_REST_Response|WP_Error Response object on success, or WP_Error object on failure.
 	 */
 	public function get_items( $request ) {
+		// @todo: Create query object.
+		// $query = new WP_Feature_Query( $query_args );
+
 		$features = wp_feature_registry()->get();
 
 		// Handle pagination.
@@ -198,24 +208,20 @@ class WP_REST_Feature_Controller extends WP_REST_Controller {
 	 */
 	public function get_item( $request ) {
 		$id = $request['id'];
+		$type = $request['type'];
 
 		$registry = WP_Feature_Registry::get_instance();
-		$feature  = $registry->find( $id );
+		$feature  = $registry->find( $id, $type );
+
+		if ( is_wp_error( $feature ) ) {
+			return $feature;
+		}
 
 		if ( ! $feature ) {
 			return new WP_Error(
 				'rest_feature_not_found',
 				__( 'Feature not found.', 'wp-feature-api' ),
 				array( 'status' => 404 )
-			);
-		}
-
-		// If type is 'tool', return error that POST is required for tool features.
-		if ( WP_Feature::TYPE_TOOL === $feature->get_type() ) {
-			return new WP_Error(
-				'rest_feature_invalid_method',
-				__( 'Tool features must be accessed via POST to the /run endpoint.', 'wp-feature-api' ),
-				array( 'status' => 405 )
 			);
 		}
 
@@ -226,7 +232,7 @@ class WP_REST_Feature_Controller extends WP_REST_Controller {
 	}
 
 	/**
-	 * Runs a tool feature.
+	 * Runs a feature.
 	 *
 	 * @since 0.1.0
 	 *
@@ -234,99 +240,21 @@ class WP_REST_Feature_Controller extends WP_REST_Controller {
 	 * @return WP_REST_Response|WP_Error Response object on success, or WP_Error object on failure.
 	 */
 	public function run_item( $request ) {
-		$id      = $request['id'];
 		$context = $request->get_param( 'context' );
+		$type = WP_Feature::type_from_request_method( $request->get_method() );
+		$feature = wp_feature_registry()->find( $request['id'], $type );
 
-		$registry = WP_Feature_Registry::get_instance();
-		$feature  = $registry->find( $id );
-
-		if ( ! $feature ) {
-			return new WP_Error(
-				'rest_feature_not_found',
-				__( 'Feature not found.', 'wp-feature-api' ),
-				array( 'status' => 404 )
-			);
+		if ( is_wp_error( $feature ) ) {
+			return $feature;
 		}
 
-		// Return error if feature is not a tool.
-		if ( WP_Feature::TYPE_TOOL !== $feature->get_type() ) {
-			return new WP_Error(
-				'rest_feature_invalid_type',
-				__( 'Only tool features can be rund.', 'wp-feature-api' ),
-				array( 'status' => 400 )
-			);
-		}
-
-		// Execute the feature.
 		$result = $feature->run( $context );
 
-		// Check if the result is an error.
 		if ( is_wp_error( $result ) ) {
 			return $result;
 		}
 
 		$response = rest_ensure_response( $result );
-		return $response;
-	}
-
-	/**
-	 * Queries features based on criteria.
-	 *
-	 * @since 0.1.0
-	 *
-	 * @param WP_REST_Request $request Full data about the request.
-	 * @return WP_REST_Response|WP_Error Response object on success, or WP_Error object on failure.
-	 */
-	public function query_items( $request ) {
-		$registry = WP_Feature_Registry::get_instance();
-
-		// Build query args from request parameters.
-		$query_args = array();
-
-		// Filter by type.
-		if ( ! empty( $request['type'] ) ) {
-			$query_args['type'] = $request['type'];
-		}
-
-		// Filter by category.
-		if ( ! empty( $request['category'] ) ) {
-			$query_args['categories'] = array( $request['category'] );
-		}
-
-		// Filter by location.
-		if ( ! empty( $request['location'] ) ) {
-			$query_args['location'] = $request['location'];
-		}
-
-		// Create query object.
-		$query = new WP_Feature_Query( $query_args );
-
-		// Get features based on query.
-		$features = $registry->get( $query );
-
-		// Handle pagination.
-		$page     = $request['page'] ?? 1;
-		$per_page = $request['per_page'] ?? 10;
-		$offset   = ( $page - 1 ) * $per_page;
-
-		$total_features = count( $features );
-		$max_pages      = ceil( $total_features / $per_page );
-
-		// Apply pagination.
-		$features = array_slice( $features, $offset, $per_page );
-
-		$data = array();
-		foreach ( $features as $feature ) {
-			$item   = $this->prepare_item_for_response( $feature, $request );
-			$data[] = $this->prepare_response_for_collection( $item );
-		}
-
-		$response = rest_ensure_response( $data );
-
-		// Add pagination headers.
-		$response->header( 'X-WP-Total', $total_features );
-		$response->header( 'X-WP-TotalPages', $max_pages );
-
 		return $response;
 	}
 
@@ -410,7 +338,7 @@ class WP_REST_Feature_Controller extends WP_REST_Controller {
 	 * @return true|WP_Error True if the request has read access, WP_Error object otherwise.
 	 */
 	public function run_item_permissions_check( $request ) {
-		$feature  = wp_feature_registry()->find( $request['id'] );
+		$feature = wp_feature_registry()->find( $request['id'] );
 
 		if ( ! $feature ) {
 			return true; // Let the callback handle the 404.
@@ -469,23 +397,11 @@ class WP_REST_Feature_Controller extends WP_REST_Controller {
 	public function prepare_item_for_response( $feature, $request ) {
 		$data = $this->transform_feature_data( $feature, $request );
 
-		// Add _links for REST API discoverability.
-		$links = array(
-			'self' => array(
-				'href' => rest_url( sprintf( '%s/%s/%s', $this->namespace, $this->rest_base, $feature->get_id() ) ),
-			),
-		);
-
-		// Add run link for tool features.
-		if ( WP_Feature::TYPE_TOOL === $feature->get_type() ) {
-			$links['run'] = array(
-				'href'   => rest_url( sprintf( '%s/%s/%s/run', $this->namespace, $this->rest_base, $feature->get_id() ) ),
-				'method' => WP_REST_Server::CREATABLE,
-			);
-		}
-
 		$response = rest_ensure_response( $data );
-		$response->add_links( $links );
+		$links = $this->get_links( $feature );
+		if ( ! empty( $links ) ) {
+			$response->add_links( $links );
+		}
 
 		return $response;
 	}
@@ -667,5 +583,87 @@ class WP_REST_Feature_Controller extends WP_REST_Controller {
 		}
 
 		return array_intersect_key( $data, array_flip( $fields ) );
+	}
+
+	/**
+	 * Retrieves the links for a feature.
+	 * Helps with discoverability of the feature and its alternate types.
+	 *
+	 * @since 0.1.0
+	 *
+	 * @param WP_Feature $feature The feature object.
+	 * @return array The links for the feature.
+	 */
+	private function get_links( $feature ) {
+		$links = array(
+			'self' => array(
+				'href' => $this->get_feature_url( $feature ),
+			),
+			'run' => array(
+				array(
+					'href'   => $this->get_feature_run_url( $feature ),
+					'method' => $feature->get_rest_method(),
+				),
+			),
+		);
+
+		// Add related links for other feature types with the same ID.
+		$alternate_features = $feature->get_alternate_types();
+		if ( $alternate_features ) {
+			foreach ( $alternate_features as $alternate_feature ) {
+				$url = $this->get_feature_url( $alternate_feature );
+				$links['related'][] = array(
+					'href'   => add_query_arg( 'type', $alternate_feature->get_type(), $url ),
+					'method' => 'GET',
+				);
+
+				$links['related'][] = array(
+					'href'   => $this->get_feature_run_url( $alternate_feature ),
+					'method' => $alternate_feature->get_rest_method(),
+				);
+			}
+		}
+
+		return $links;
+	}
+
+	/**
+	 * Retrieves the base resource path for a feature.
+	 *
+	 * @since 0.1.0
+	 *
+	 * @param WP_Feature $feature The feature object.
+	 * @return string The base path for the feature.
+	 */
+	private function get_base_path( $feature ) {
+		if ( $feature ) {
+			return sprintf( '%s/%s/%s', $this->namespace, $this->rest_base, $feature->get_id() );
+		}
+
+		return sprintf( '%s/%s', $this->namespace, $this->rest_base );
+	}
+
+	/**
+	 * Retrieves the URL for a feature.
+	 *
+	 * @since 0.1.0
+	 *
+	 * @param WP_Feature $feature The feature object.
+	 * @return string The URL for the feature.
+	 */
+	private function get_feature_url( $feature ) {
+		return rest_url( $this->get_base_path( $feature ) );
+	}
+
+	/**
+	 * Retrieves the URL for the run endpoint of a feature.
+	 *
+	 * @since 0.1.0
+	 *
+	 * @param WP_Feature $feature The feature object.
+	 * @return string The URL for the run endpoint of the feature.
+	 */
+	private function get_feature_run_url( $feature ) {
+		return $this->get_feature_url( $feature ) . '/' . $this->run_path;
 	}
 }

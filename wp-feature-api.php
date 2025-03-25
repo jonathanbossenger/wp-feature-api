@@ -50,6 +50,9 @@ function wp_feature_api_init() {
 	// Include global functions.
 	require_once WP_FEATURE_API_PLUGIN_DIR . 'includes/wp-feature.php';
 
+	// Include core features.
+	require_once WP_FEATURE_API_PLUGIN_DIR . 'includes/default-wp-features.php';
+
 	// Initialize the REST API endpoints.
 	require_once WP_FEATURE_API_PLUGIN_DIR . 'includes/rest-api/class-wp-rest-feature-controller.php';
 
