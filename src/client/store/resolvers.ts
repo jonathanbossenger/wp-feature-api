@@ -1,0 +1,28 @@
+/**
+ * WordPress dependencies
+ */
+import { store as coreStore } from '@wordpress/core-data';
+
+/**
+ * Internal dependencies
+ */
+import { ENTITY_KIND, ENTITY_NAME } from './constants';
+import { receiveFeatures, receiveFeature } from './actions';
+
+export function getRegisteredFeatures() {
+	return async ( { dispatch, registry } ) => {
+		const features = await registry
+			.resolveSelect( coreStore )
+			.getEntityRecords( ENTITY_KIND, ENTITY_NAME );
+		dispatch( receiveFeatures( features ) );
+	};
+}
+
+export function getRegisteredFeature( id ) {
+	return async ( { dispatch, registry } ) => {
+		const feature = await registry
+			.resolveSelect( coreStore )
+			.getEntityRecord( ENTITY_KIND, ENTITY_NAME, id );
+		dispatch( receiveFeature( feature ) );
+	};
+}
