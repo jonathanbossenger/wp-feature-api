@@ -37,7 +37,6 @@ class WP_Feature_Query {
 				'input_schema' => array(),
 				'output_schema' => array(),
 				'search'     => '',
-				'id'         => array(),
 			)
 		);
 	}
@@ -117,13 +116,6 @@ class WP_Feature_Query {
 				'description' => __( 'Search features by name, description, or ID.', 'features-api' ),
 				'type' => 'string',
 			),
-			'id' => array(
-				'description' => __( 'Filter features by specific IDs.', 'features-api' ),
-				'type' => 'array',
-				'items' => array(
-					'type' => 'string',
-				),
-			),
 		);
 	}
 
@@ -145,11 +137,6 @@ class WP_Feature_Query {
 	 * @return bool True if the feature matches the query, false otherwise.
 	 */
 	public function matches( $feature ) {
-		// Check ID.
-		if ( ! empty( $this->args['id'] ) && ! in_array( $feature->get_id(), $this->args['id'], true ) ) {
-			return false;
-		}
-
 		// Check type.
 		if ( ! empty( $this->args['type'] ) && ! in_array( $feature->get_type(), $this->args['type'], true ) ) {
 			return false;
