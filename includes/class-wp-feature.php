@@ -182,39 +182,6 @@ class WP_Feature implements \JsonSerializable {
 	private $location;
 
 	/**
-	 * Enforces actual objects for empty arrays of type 'object'.
-	 *
-	 * @since 0.1.0
-	 * @param mixed $data The data to encode.
-	 * @return mixed The encoded data.
-	 */
-	private function enforce_type_encoding( $data ) {
-		if ( ! is_array( $data ) ) {
-			return $data;
-		}
-
-		foreach ( $data as $key => $value ) {
-			if ( ! is_array( $value ) ) {
-				continue;
-			}
-
-			if (
-				isset( $value['type'] ) &&
-				'object' === $value['type'] &&
-				empty( $value['properties'] )
-			) {
-				$value['properties'] = new \stdClass();
-			} else {
-				$value = $this->enforce_type_encoding( $value );
-			}
-
-			$data[ $key ] = $value;
-		}
-
-		return $data;
-	}
-
-	/**
 	 * Constructor.
 	 *
 	 * @since 0.1.0
@@ -222,6 +189,8 @@ class WP_Feature implements \JsonSerializable {
 	 * @param array  $args The feature arguments.
 	 */
 	public function __construct( $id, $args = array() ) {
+		require_once WP_FEATURE_API_PLUGIN_DIR . 'includes/class-wp-feature-schema-transformer.php';
+
 		if ( empty( $id ) || ! is_string( $id ) ) {
 			_doing_it_wrong(
 				__METHOD__,
@@ -367,7 +336,9 @@ class WP_Feature implements \JsonSerializable {
 	 * @return array The feature input schema.
 	 */
 	public function get_input_schema() {
-		return $this->enforce_type_encoding( $this->input_schema );
+		$transformer_class = apply_filters( 'wp_feature_input_schema_transformer', null, $this );
+		$transformer = WP_Feature_Schema_Transformer::make( $transformer_class, $this->input_schema );
+		return $transformer->transform();
 	}
 
 	/**
@@ -377,7 +348,9 @@ class WP_Feature implements \JsonSerializable {
 	 * @return array The feature output schema.
 	 */
 	public function get_output_schema() {
-		return $this->enforce_type_encoding( $this->output_schema );
+		$transformer_class = apply_filters( 'wp_feature_output_schema_transformer', null, $this );
+		$transformer = WP_Feature_Schema_Transformer::make( $transformer_class, $this->output_schema );
+		return $transformer->transform();
 	}
 
 	/**

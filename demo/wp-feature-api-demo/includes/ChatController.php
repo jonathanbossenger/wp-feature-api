@@ -90,7 +90,7 @@ class ChatController extends WP_REST_Controller {
 			'tools' => $this->tools_from_features($tool_features),
 		];
 
-		echo wp_json_encode($prompt, ); die();
+		// echo wp_json_encode($prompt); die();
 		$result = $client->chat()->create($prompt);
 
 		return $result->choices[0]->message->content;
