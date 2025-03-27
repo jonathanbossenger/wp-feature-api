@@ -4,6 +4,8 @@ namespace A8C\WpFeatureApiDemo;
 
 use A8C\WpFeatureApiDemo\RegisterFeatures;
 use A8C\WpFeatureApiDemo\BootstrapAssets;
+use A8C\WpFeatureApiDemo\ChatController;
+use A8C\WpFeatureApiDemo\Options;
 
 class Main {
 
@@ -15,7 +17,15 @@ class Main {
 		load_plugin_textdomain( 'wp-feature-api-demo', false, dirname( plugin_basename( WP_FEATURE_API_DEMO_PATH ) ) . '/languages' );
 
 		(new RegisterFeatures())->init();
-		(new BootstrapAssets())->init();
+		(new Options())->init();
+		$api_key = Options::get_api_key();
+
+		if ( $api_key ) {
+			(new BootstrapAssets())->init();
+			// Initialize the Chat Controller
+			$chat_controller = new ChatController();
+			add_action( 'rest_api_init', [ $chat_controller, 'register_routes' ] );
+		}
 	}
 
 	/**

@@ -21,6 +21,13 @@ class BootstrapAssets {
             true
         );
 
+		wp_enqueue_style(
+			'wp-components-css',
+			includes_url('css/dist/components/style.min.css'),
+			array(),
+			false
+		);
+
         wp_enqueue_style(
             'wp-feature-api-demo',
             WP_FEATURE_API_DEMO_URL . 'build/style-index.css',

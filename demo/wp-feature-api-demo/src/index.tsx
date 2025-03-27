@@ -6,7 +6,7 @@ import { render, createElement } from '@wordpress/element';
 /**
  * Internal dependencies
  */
-import { ChatApp } from './ChatApp';
+import { ChatApp } from './chat-app';
 import './style.scss';
 
 document.addEventListener( 'DOMContentLoaded', () => {
