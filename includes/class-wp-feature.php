@@ -367,8 +367,7 @@ class WP_Feature implements \JsonSerializable {
 	 * @return array The feature input schema.
 	 */
 	public function get_input_schema() {
-		$schema = $this->enforce_type_encoding( $this->input_schema );
-		return $schema;
+		return $this->enforce_type_encoding( $this->input_schema );
 	}
 
 	/**
