@@ -263,7 +263,7 @@ class WP_Feature_Schema_Adapter {
 	}
 
 	/**
-	 * Enforces required object properties include 'additionalProperties' set to false.
+	 * Enforces object properties include 'additionalProperties' set to false.
 	 *
 	 * @since 0.1.0
 	 * @param array $rule_name The name of the rule.
@@ -276,19 +276,26 @@ class WP_Feature_Schema_Adapter {
 			return $data;
 		}
 
-		$data['additionalProperties'] = false;
+		if ( isset( $data['type'] ) && 'object' === $data['type'] ) {
+			$data['additionalProperties'] = false;
+		}
 
-		if ( isset( $data['properties'] ) ) {
+		if ( isset( $data['properties'] ) && is_array( $data['properties'] ) ) {
 			foreach ( $data['properties'] as $property_key => $property_value ) {
-				$data['properties'][ $property_key ]['additionalProperties'] = false;
+				$data['properties'][ $property_key ] = $this->rule_additional_properties_false( $rule_name, $property_value );
 			}
+		}
+
+		if ( isset( $data['items'] ) && is_array( $data['items'] ) ) {
+			$data['items'] = $this->rule_additional_properties_false( $rule_name, $data['items'] );
 		}
 
 		return $data;
 	}
 
 	/**
-	 * Enforces actual objects for empty arrays of type 'object'.
+	 * Enforces better compliance with JSON Schema
+	 * of some data types.
 	 *
 	 * @since 0.1.0
 	 * @param array $rule_name The rule value.
@@ -345,7 +352,7 @@ class WP_Feature_Schema_Adapter {
 	}
 
 	/**
-	 * Processes and adds required properties to a schema object.
+	 * Processes and adds required properties to a schema object recursively.
 	 *
 	 * @since 0.1.0
 	 * @param array $rule_name The rule value.
@@ -353,20 +360,23 @@ class WP_Feature_Schema_Adapter {
 	 * @return array The processed schema data.
 	 */
 	private function rule_all_fields_required( $rule_name, $data ) {
-		if ( ! isset( $data['properties'] ) || false === $rule_name ) {
+		if ( ! is_array( $data ) || false === $rule_name ) {
 			return $data;
 		}
 
-		$required = array_keys( $data['properties'] );
-		foreach ( $data['properties'] as $property_key => $property_value ) {
-			if ( isset( $property_value['required'] ) && ! $property_value['required'] ) {
-				unset( $required[ $property_key ] );
-			}
-			unset( $data['properties'][ $property_key ]['required'] );
-		}
+		if ( isset( $data['type'] ) && isset( $data['properties'] ) ) {
+			$data['required'] = array_keys( (array) $data['properties'] );
 
-		$data['additionalProperties'] = false;
-		$data['required'] = $required;
+			if ( 'object' === $data['type'] ) {
+				foreach ( $data['properties'] as $property_key => $property_value ) {
+					$data['properties'][ $property_key ] = $this->rule_all_fields_required( $rule_name, $property_value );
+				}
+			}
+
+			if ( isset( $data['items'] ) && 'array' === $data['type'] ) {
+				$data['items'] = $this->rule_all_fields_required( $rule_name, $data['items'] );
+			}
+		}
 
 		return $data;
 	}
