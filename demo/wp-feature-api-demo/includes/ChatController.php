@@ -11,7 +11,7 @@ class ChatController extends WP_REST_Controller {
 
 	private string $api_key;
 
-	private bool $strict_schemas = false;
+	private bool $strict_schemas = true;
 
 	/**
 	 * Constructor.
@@ -70,7 +70,7 @@ class ChatController extends WP_REST_Controller {
 		$tools = \wp_feature_registry()->get();
 
 		$prompt = [
-			'model' => 'gpt-4o-mini',
+			'model' => 'gpt-4o',
 			'messages' => [
 				['role' => 'system', 'content' => 'You are a helpful WordPress assistant in the dashboard that can use the following tools to resources to help the user. If you are unsure what tool to call, just ask the user to clarify.'],
 				['role' => 'user', 'content' => $message],
@@ -78,10 +78,23 @@ class ChatController extends WP_REST_Controller {
 			'tools' => $this->tools_from_features($tools),
 		];
 
-		// echo wp_json_encode($prompt); die();
 		$result = $client->chat()->create($prompt);
+		$message = $result->choices[0]->message;
+
+		if( ! empty( $message->content ) ) {
+			return $message->content;
+		} else {
+			// tool call
+			$function = $message->toolCalls[0]->function;
+			$feature = $function->name;
+			$parameters = json_decode( $function->arguments, true );
+
+			$result = null;
+			// $result = \wp_feature_registry()->find( $feature )->run( $parameters );
+			return array( $feature, $parameters, $result );
+		}
+
 		return $result;
-		return $result->choices[0]->message->content;
 	}
 
 	private function tools_from_features( array $features ) {
@@ -97,6 +110,12 @@ class ChatController extends WP_REST_Controller {
 			// additionalProperties is always present. So 1 is considered empty.
 			if ( count( $parameters ) > 1 ) {
 				$function['parameters'] = $parameters;
+			} else {
+				$function['parameters'] = [
+					'type' => 'object',
+					'properties' => new \stdClass(),
+					'additionalProperties' => false,
+				];
 			}
 
 			return [
