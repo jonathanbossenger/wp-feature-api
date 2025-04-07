@@ -58,8 +58,8 @@ class WP_Feature_Schema_Adapter {
 				/**
 				 * Array of supported types and their keywords.
 				 */
-				'supported_types' => array(
-					'any' => array(
+				'supported_types'             => array(
+					'any'     => array(
 						'type',
 						'enum',
 						'const',
@@ -74,37 +74,38 @@ class WP_Feature_Schema_Adapter {
 						'oneOf',
 						// 'default',
 					),
-					'object' => array(
+					'object'  => array(
 						'required',
 						'dependentRequired',
 					),
-					'string' => array(),
-					'number' => array(),
+					'string'  => array(),
+					'number'  => array(),
 					'integer' => array(),
 					'boolean' => array(),
-					'array' => array(),
-					'enum' => array(),
-					'anyOf' => array(),
+					'array'   => array(),
+					'enum'    => array(),
+					'anyOf'   => array(),
 					// not included in docs, but it's implied by some examples.
-					'null' => array(),
+					'null'    => array(),
 				),
 				/**
 				 * Name: Strict object encoding
 				 * Description: If the type is object, forces WordPress to encode the object as an empty object instead of an empty array. Also forces enums as arrays of keys rather than objects.
+				 *
 				 * @link https://core.trac.wordpress.org/ticket/63186
 				 */
-				'strict_object_encoding' => true,
+				'strict_object_encoding'      => true,
 				/**
 				 * Name: Root objects must not be anyOf
 				 * Description: Note that the root level object of a schema must be an object, and not use anyOf.
 				 */
-				'no_any_of_for_root_objects' => true,
+				'no_any_of_for_root_objects'  => true,
 				/**
 				 * Name: All fields must be required
 				 * Description: To use Structured Outputs, all fields or function parameters must be specified as required.
 				 * Although all fields must be required (and the model will return a value for each parameter), it is possible to emulate an optional parameter by using a union type with null.
 				 */
-				'all_fields_required' => true,
+				'all_fields_required'         => true,
 				/**
 				 * Name: additionalProperties
 				 * Description: false must always be set in objects additionalProperties controls whether it is allowable for an object to contain additional keys / values that were not defined in the JSON Schema.
@@ -115,19 +116,19 @@ class WP_Feature_Schema_Adapter {
 				 * Name: Objects have limitations on nesting depth and size
 				 * Description: A schema may have up to 100 object properties total, with up to 5 levels of nesting.
 				 */
-				'max_properties' => 100,
-				// 'max_depth' => 5,
+				'max_properties'              => 100,
+				'max_depth'                   => 5,
 				/**
 				 * Name: Limitations on total string size
 				 * Description: In a schema, total string length of all property names, definition names, enum values, and const values cannot exceed 15,000 characters.
 				 */
-				'max_chars' => 15000,
+				'max_chars'                   => 15000,
 				/**
 				 * Name: Limitations on enum size
 				 * Description: A schema may have up to 500 enum values across all enum properties.
 				 * For a single enum property with string values, the total string length of all enum values cannot exceed 7,500 characters when there are more than 250 enum values.
 				 */
-				'max_enum_values' => 500,
+				'max_enum_values'             => 500,
 			)
 		);
 	}
@@ -323,7 +324,7 @@ class WP_Feature_Schema_Adapter {
 				isset( $value['oneOf'] ) &&
 				is_array( $value['oneOf'] )
 			) {
-				$value['type'] = 'array';
+				$value['type']  = 'array';
 				$value['items'] = $value['oneOf'][0];
 				unset( $value['oneOf'] );
 			}
@@ -382,9 +383,9 @@ class WP_Feature_Schema_Adapter {
 					unset( $data['properties'][ $property_key ]['required'] );
 				} else {
 					// Make non-required properties nullable.
-					$current_type = isset( $property_value['type'] ) ? $property_value['type'] : 'string';
-					$types = is_array( $current_type ) ? $current_type : array( $current_type );
-					$types[] = 'null';
+					$current_type                                = isset( $property_value['type'] ) ? $property_value['type'] : 'string';
+					$types                                       = is_array( $current_type ) ? $current_type : array( $current_type );
+					$types[]                                     = 'null';
 					$data['properties'][ $property_key ]['type'] = array_values( array_unique( $types ) );
 				}
 			}
@@ -445,18 +446,34 @@ class WP_Feature_Schema_Adapter {
 			return $data;
 		}
 
-		$max_found_depth = $this->get_max_depth( $this->transformed_schema );
-		if ( $max_found_depth > $max_depth ) {
-			throw new Exception(
-				sprintf(
-					/* translators: %d: Maximum nesting depth allowed */
-					esc_html__( 'Schema exceeds maximum allowed nesting depth (%d)', 'wp-feature-api' ),
-					esc_html( $max_depth )
-				)
-			);
+		// Instead of throwing an error, ensure the data has the maximum allowed depth.
+		return $this->enforce_max_depth( $data, $max_depth );
+	}
+
+	/**
+	 * Enforces maximum nesting depth by truncating the data structure.
+	 *
+	 * @since 0.1.0
+	 * @param array $data The schema data to process.
+	 * @param int   $max_depth Maximum allowed nesting depth.
+	 * @param int   $current_depth Current depth in recursion.
+	 * @return array The processed schema data with enforced maximum depth.
+	 */
+	private function enforce_max_depth( $data, $max_depth, $current_depth = 0 ) {
+		if ( ! is_array( $data ) || $current_depth >= $max_depth ) {
+			return $data;
 		}
 
-		return $data;
+		$result = array();
+		foreach ( $data as $key => $value ) {
+			if ( is_array( $value ) ) {
+				$result[ $key ] = $this->enforce_max_depth( $value, $max_depth, $current_depth + 1 );
+			} else {
+				$result[ $key ] = $value;
+			}
+		}
+
+		return $result;
 	}
 
 	/**
@@ -616,7 +633,7 @@ class WP_Feature_Schema_Adapter {
 		$max_depth = $current_depth;
 		foreach ( $data as $value ) {
 			if ( is_array( $value ) ) {
-				$depth = $this->get_max_depth( $value, $current_depth + 1 );
+				$depth     = $this->get_max_depth( $value, $current_depth + 1 );
 				$max_depth = max( $max_depth, $depth );
 			}
 		}
