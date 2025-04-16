@@ -53,6 +53,7 @@ class RegisterFeatures {
 			array(
 				'id'          => 'demo/post-info',
 				'name'        => __( 'Post Information', 'wp-feature-api-demo' ),
+				'description' => __( 'Get information about the current post.', 'wp-feature-api-demo' ),
 			)
 		);
 	}
