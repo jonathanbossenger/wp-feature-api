@@ -6,7 +6,7 @@
  */
 
 /**
- * Controller class for the Features API REST endpoints.
+ * Controller class for the Feature API REST endpoints.
  *
  * @since 0.1.0
  */
@@ -60,7 +60,7 @@ class WP_REST_Feature_Controller extends WP_REST_Controller {
 	}
 
 	/**
-	 * Registers the routes for the Features API.
+	 * Registers the routes for the Feature API.
 	 *
 	 * @since 0.1.0
 	 */

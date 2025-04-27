@@ -1,9 +1,9 @@
-This documentation provides a comprehensive guide to the WordPress Features API, a system designed to register, discover, and execute server-side and client-side functionality within WordPress, primarily intended for use by AI agents and other programmatic systems.
+This documentation provides a comprehensive guide to the WordPress Feature API, a system designed to register, discover, and execute server-side and client-side functionality within WordPress, primarily intended for use by AI agents and other programmatic systems.
 
 **Table of Contents:**
 
 1.  **Introduction & Overview**
-    *   What is the Features API?
+    *   What is the Feature API?
     *   Core Concepts (Features, Tools, Resources)
     *   Goals and Benefits
     *   Relationship with MCP (Multi-Capability Protocol)
@@ -54,5 +54,5 @@ This documentation provides a comprehensive guide to the WordPress Features API,
     *   Registering Features in Plugins/Themes
     *   Best Practices (Namespacing, Descriptions)
 9.  **MCP Integration (Conceptual)**
-    *   Relationship between Features API and MCP
+    *   Relationship between Feature API and MCP
     *   The MCP Adapter Concept

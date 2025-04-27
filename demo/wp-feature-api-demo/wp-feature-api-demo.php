@@ -2,7 +2,7 @@
 /**
  * Plugin Name: WordPress Feature API Demo
  * Plugin URI: https://github.com/Automattic/wp-feature-api
- * Description: Demo plugin showcasing the WordPress Features API.
+ * Description: Demo plugin showcasing the WordPress Feature API.
  * Version: 0.1.0
  * Author: WordPress Contributors
  * Author URI: https://wordpress.org/

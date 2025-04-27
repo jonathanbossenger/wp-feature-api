@@ -1,10 +1,10 @@
-# Design: WordPress Features API
+# Design: WordPress Feature API
 
-In relation to the [RFC](RFC.md), this document outlines the design of the WordPress Features API.
+In relation to the [RFC](RFC.md), this document outlines the design of the WordPress Feature API.
 
 ## Overview
 
-The main goal of the Features API is to easily register features (in the form of `resources` and `tools`) in a way that makes them accessible to AI and WordPress developers.
+The main goal of the Feature API is to easily register features (in the form of `resources` and `tools`) in a way that makes them accessible to AI and WordPress developers.
 
 We propose a registry accessible on both the client and server that uses the WP REST API to retrieve and resolve features.
 
@@ -174,7 +174,7 @@ With this, we may also explore a unified way of registering features through som
 
 ### Limiting Client Size Registry
 
-This Features API may grow to be quite large, so we should consider some mechanisms to limit the size of the registry on the client. Some initial thoughts are:
+This Feature API may grow to be quite large, so we should consider some mechanisms to limit the size of the registry on the client. Some initial thoughts are:
 
 - registering callbacks only on the client, since the static feature properties are already registered on the server
 - lazy loading features on demand

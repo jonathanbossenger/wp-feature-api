@@ -1,12 +1,12 @@
-# RFC: WordPress Features API
+# RFC: WordPress Feature API
 
 ## Summary
 
-The WordPress Features API is a proposed system for exposing server and client side functionality in WordPress for use in, but not exclusive to, LLMs in order to enhance agentic WordPress systems. It's focused on discoverability and execution across server and client. At its core, it is a very accessible registry of defined WordPress features in the form of resources and tools. We propose leveraging the existing WP REST API to power the functionality underneath the Features API and providing a javascript `wp.features` module for client-side use.
+The WordPress Feature API is a proposed system for exposing server and client side functionality in WordPress for use in, but not exclusive to, LLMs in order to enhance agentic WordPress systems. It's focused on discoverability and execution across server and client. At its core, it is a very accessible registry of defined WordPress features in the form of resources and tools. We propose leveraging the existing WP REST API to power the functionality underneath the Feature API and providing a javascript `wp.features` module for client-side use.
 
 ### What this is NOT
 
-This is not an attempt at introducing AI features and LLMs into WordPress. That's a separate discussion, albeit a good and needed one. However, the intended consumer of the Features API **is** LLMs and agentic systems that will be built in WordPress. As such, it's not exclusive to being used by LLMs, and offers a standard and distributed way of exposing WP functionality throughout WordPress.
+This is not an attempt at introducing AI features and LLMs into WordPress. That's a separate discussion, albeit a good and needed one. However, the intended consumer of the Feature API **is** LLMs and agentic systems that will be built in WordPress. As such, it's not exclusive to being used by LLMs, and offers a standard and distributed way of exposing WP functionality throughout WordPress.
 
 ### Problem
 
@@ -35,7 +35,7 @@ The list is endless. But they are all easy to define features and useful across 
 
 ## Use Cases
 
-Let's walk through some common use cases to address how we can use Features API to solve them. Since we're agnostic to how we call an LLM, I'll use `vercel/ai` as an example for the client, and a hypothetical `ai()` server-side AI SDK.
+Let's walk through some common use cases to address how we can use Feature API to solve them. Since we're agnostic to how we call an LLM, I'll use `vercel/ai` as an example for the client, and a hypothetical `ai()` server-side AI SDK.
 
 ### Client-Side LLMs
 

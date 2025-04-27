@@ -3,7 +3,7 @@ description:
 globs: includes/**/*.php,src/**/*.js,src/**/*.ts
 alwaysApply: false
 ---
-You are assisting with the WordPress Features API project, which is a system for exposing server and client-side functionality in WordPress for use in LLMs and agentic systems.
+You are assisting with the WordPress Feature API project, which is a system for exposing server and client-side functionality in WordPress for use in LLMs and agentic systems.
 
 ## IMPORTANT WORDPRESS CODING STANDARDS:
 1. Follow WordPress PHP coding standards: https://developer.wordpress.org/coding-standards/wordpress-coding-standards/php/
@@ -65,7 +65,7 @@ You are assisting with the WordPress Features API project, which is a system for
    - Nonce all form submissions and verify nonces
 
 ## PROJECT SPECIFICS:
-- The Features API consists of both server-side (PHP) and client-side (JavaScript) components
+- The Feature API consists of both server-side (PHP) and client-side (JavaScript) components
 - Features are registered as either 'resources' or 'tools'
 - The system uses a registry pattern with a singleton WP_Feature_Registry class
 - Features should be discoverable and executable across server and client

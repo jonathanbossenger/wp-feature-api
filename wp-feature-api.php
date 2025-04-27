@@ -32,7 +32,7 @@ if ( ! defined( 'WP_FEATURE_API_LOAD_DEMO' ) ) {
 }
 
 /**
- * Initializes the WordPress Features API.
+ * Initializes the WordPress Feature API.
  *
  * @since 0.1.0
  * @return void
@@ -67,7 +67,7 @@ function wp_feature_api_enqueue_admin_scripts() {
 }
 
 /**
- * Registers the REST API routes for the Features API.
+ * Registers the REST API routes for the Feature API.
  *
  * @since 0.1.0
  * @return void

@@ -195,7 +195,7 @@ class BasicAgent {
 	 * Checks if the tool call corresponds to a client or server feature,
 	 * sets pending client action or executes the server feature accordingly.
 	 *
-	 * @todo Consider abstracting some part of the client chain here into the main WP Features API in the future
+	 * @todo Consider abstracting some part of the client chain here into the main WP Feature API in the future
 	 *
 	 * @param object $tool_call The tool call object from the LLM response.
 	 * @return void

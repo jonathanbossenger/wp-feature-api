@@ -8,7 +8,7 @@
 /**
  * Class WP_Feature_Category
  *
- * Represents a feature category in the WordPress Features API.
+ * Represents a feature category in the WordPress Feature API.
  *
  * @since 0.1.0
  */
