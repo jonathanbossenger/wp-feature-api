@@ -9,6 +9,12 @@ import {
 	insertListBlock,
 } from './blocks';
 import { setTitle, savePost, getEditorContent } from './editor';
+import {
+	searchPatterns,
+	getPatternCategories,
+	insertPattern,
+	getPatternContent,
+} from './patterns';
 
 /**
  * External dependencies
@@ -27,6 +33,11 @@ export const coreFeatures = [
 	setTitle,
 	savePost,
 	getEditorContent,
+	// Pattern Features
+	searchPatterns,
+	getPatternContent,
+	getPatternCategories,
+	insertPattern,
 ];
 
 /**
