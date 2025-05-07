@@ -13,16 +13,15 @@ import {
 import type { Tool, ToolResult } from '../types/messages';
 import type { ToolProvider } from './tool-executor';
 
-// Helper function to convert a string to its hex representation
+// Helper function to hash a string to a hex value using the djb2 hash algorithm
 function stringToHex( str: string ): string {
-	let hex = '';
+	let hash = 5381;
 	for ( let i = 0; i < str.length; i++ ) {
-		const charCode = str.charCodeAt( i );
-		const hexValue = charCode.toString( 16 );
-		// Pad with leading zero if needed
-		hex += hexValue.padStart( 2, '0' );
+		const char = str.charCodeAt( i );
+		hash = ( hash << 5 ) + hash + char;
 	}
-	return hex;
+	hash = hash >>> 0; // Convert to unsigned 32-bit integer
+	return hash.toString( 16 );
 }
 
 /**
@@ -54,6 +53,7 @@ export const createWpFeatureToolProvider = (): ToolProvider => {
 
 				return {
 					name: encodedToolName,
+					displayName: feature.id,
 					description: feature.description,
 					parameters: feature.input_schema || {},
 					execute: async (
