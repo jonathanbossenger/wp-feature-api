@@ -1,11 +1,12 @@
 {
-  "name": "a8c/wp-feature-api",
+  "name": "automattic/wp-feature-api",
   "type": "library",
+  "description": "A system for exposing WordPress functionality in a standardized, discoverable way for both server and client-side use",
   "license": "GPL-2.0-or-later",
   "authors": [
     {
-      "name": "Greg Hunt",
-      "email": "gregory.hunt@automattic.com"
+      "name": "Automattic",
+      "homepage": "https://automattic.ai/"
     }
   ],
   "require": {
@@ -15,6 +16,14 @@
   },
   "suggest": {
     "ext-dom": "*"
+  },
+  "autoload": {
+    "files": [
+      "includes/wp-feature.php"
+    ],
+    "classmap": [
+      "includes/"
+    ]
   },
   "require-dev": {
     "composer/ca-bundle": "1.5.6",
@@ -34,5 +43,15 @@
     "format": "@php ./vendor/squizlabs/php_codesniffer/bin/phpcbf --report=summary,source",
     "lint": "@php ./vendor/squizlabs/php_codesniffer/bin/phpcs --report=summary,source",
     "lint:errors": "@lint -n"
+  },
+  "keywords": [
+    "wordpress",
+    "api",
+    "features",
+    "llm",
+    "ai"
+  ],
+  "support": {
+    "issues": "https://github.com/Automattic/wp-feature-api/issues"
   }
 }
