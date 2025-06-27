@@ -19,13 +19,14 @@ class WP_Feature_API_Init {
 	public static function initialize() {
 
 		// Run the wp_feature_api_init action after the regular REST routes are registered.
+		add_action( 'rest_api_init', array( __CLASS__, 'run_init_action' ), 100 );
 		add_action( 'parse_request', array( __CLASS__, 'run_init_action' ), 11 );
 
 		// Register REST routes after the regular REST routes are registered
 		// (at rest_api_init:99 action which is triggered by parse_request:10 action).
 		// This ensures that the Feature API won't trigger creating the global WP rest api server
 		// too early (during the `init` action).
-		add_action( 'parse_request', array( __CLASS__, 'register_rest_routes' ), 20 );
+		add_action( 'rest_api_init', array( __CLASS__, 'register_rest_routes' ), 120 );
 
 		// enqueue admin scripts.
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_admin_scripts' ) );
@@ -65,7 +66,12 @@ class WP_Feature_API_Init {
 	 * @return void
 	 */
 	public static function run_init_action() {
-		do_action( 'wp_feature_api_init' );
+		static $has_run = false;
+
+		if ( ! $has_run ) {
+			$has_run = true;
+			do_action( 'wp_feature_api_init' );
+		}
 	}
 
 	/**
@@ -75,10 +81,6 @@ class WP_Feature_API_Init {
 	 * @return void
 	 */
 	public static function register_rest_routes() {
-		if ( ! defined( 'REST_REQUEST' ) || ! REST_REQUEST ) {
-			return;
-		}
-
 		$controller = new WP_REST_Feature_Controller();
 		$controller->register_routes();
 	}
