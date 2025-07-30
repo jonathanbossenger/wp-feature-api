@@ -30,11 +30,6 @@ class WP_Feature_API_Init {
 
 		// enqueue admin scripts.
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_admin_scripts' ) );
-
-		// Load demo plugin if enabled.
-		if ( defined( 'WP_FEATURE_API_LOAD_DEMO' ) && WP_FEATURE_API_LOAD_DEMO ) {
-			self::load_agent_demo();
-		}
 	}
 
 	/**
@@ -85,46 +80,6 @@ class WP_Feature_API_Init {
 		$controller->register_routes();
 	}
 
-	/**
-	 * Loads the WP Feature API Demo plugin.
-	 *
-	 * @since 0.1.0
-	 * @return void
-	 */
-	public static function load_agent_demo() {
-		$demo_plugin_file = WP_FEATURE_API_PLUGIN_DIR . 'demo/wp-feature-api-agent/wp-feature-api-agent.php';
-
-		if ( file_exists( $demo_plugin_file ) ) {
-			require_once $demo_plugin_file;
-
-			// Notify admin that demo plugin is loaded if in admin area.
-			if ( is_admin() ) {
-				add_action( 'admin_notices', array( __CLASS__, 'demo_loaded_notice' ) );
-			}
-		}
-	}
-
-	/**
-	 * Displays an admin notice when the demo plugin is loaded.
-	 *
-	 * @since 0.1.0
-	 * @return void
-	 */
-	public static function demo_loaded_notice() {
-		?>
-		<div class="notice notice-info is-dismissible">
-			<p>
-				<?php
-				printf(
-					/* translators: %s: WP_FEATURE_API_LOAD_DEMO constant */
-					esc_html__( 'WordPress Feature API Demo plugin is loaded. To disable it, set %s to false in your wp-config.php file.', 'wp-feature-api' ),
-					'<code>WP_FEATURE_API_LOAD_DEMO</code>'
-				);
-				?>
-			</p>
-		</div>
-		<?php
-	}
 }
 
 WP_Feature_API_Init::initialize();

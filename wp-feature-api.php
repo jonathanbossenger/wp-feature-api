@@ -22,15 +22,6 @@ $wp_feature_api_version = '0.1.7';
 $wp_feature_api_plugin_dir = plugin_dir_path( __FILE__ );
 $wp_feature_api_plugin_url = plugin_dir_url( __FILE__ );
 
-/**
- * Define this constant as true in wp-config.php to load the demo plugin.
- * The plugin is bundled with the development version, or released separately on GitHub.
- * The Composer version does not include the demo plugin.
- * Example: define( 'WP_FEATURE_API_LOAD_DEMO', true );
- */
-if ( ! defined( 'WP_FEATURE_API_LOAD_DEMO' ) ) {
-	define( 'WP_FEATURE_API_LOAD_DEMO', false );
-}
 
 // Version registry.
 global $wp_feature_api_versions;

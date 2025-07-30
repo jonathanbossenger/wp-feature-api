@@ -1043,12 +1043,6 @@ async function useFeatures() {
 
 The core Feature API plugin currently has minimal direct configuration.
 
-* **Demo Plugin Loading:** The primary configuration is enabling the demo agent plugin (`demo/wp-feature-api-agent`). This is controlled by the `WP_FEATURE_API_LOAD_DEMO` PHP constant. Define it as `true` in your `wp-config.php` to load the demo.
-
-    ```php
-    // In wp-config.php
-    define( 'WP_FEATURE_API_LOAD_DEMO', true );
-    ```
 
 * **Feature Repository:** The underlying storage mechanism can be changed using the `wp_feature_repository` filter. By default, it uses `WP_Feature_Repository_Memory`. Advanced users could filter this to use a custom database-backed repository.
 
@@ -1062,9 +1056,8 @@ The core Feature API plugin currently has minimal direct configuration.
     ```
 
 * **Schema Adapters:** Filters `wp_feature_input_schema_adapter` and `wp_feature_output_schema_adapter` allow specifying a custom class (extending `WP_Feature_Schema_Adapter`) to transform schemas for specific consumers (like different LLM providers).
-* **Demo Settings:** The included demo plugin (`wp-feature-api-agent`) adds its own settings page ("Settings" > "WP Feature Agent Demo") to configure the OpenAI API key required for its functionality. This demonstrates *how* settings could be added for features or related systems, but these settings are specific to the demo itself.
 
-Programmatic access to configuration would typically involve standard WordPress methods like `get_option()` if features stored settings, or checking constants like `WP_FEATURE_API_LOAD_DEMO`.
+Programmatic access to configuration would typically involve standard WordPress methods like `get_option()` if features stored settings.
 
 ## 9. Integration Guidelines
 
